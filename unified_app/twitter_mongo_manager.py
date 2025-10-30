@@ -51,8 +51,7 @@ class TwitterMongoManager:
                 'retryWrites': True,
                 'w': 'majority',
                 'tls': True,
-                'tlsAllowInvalidCertificates': True,
-                'tlsInsecure': True
+                'tlsAllowInvalidCertificates': True
             }
 
             self.client = MongoClient(

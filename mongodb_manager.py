@@ -82,8 +82,7 @@ class MongoDBManager:
                 # Production: Use more lenient SSL for compatibility
                 connection_params.update({
                     'tls': True,
-                    'tlsAllowInvalidCertificates': True,
-                    'tlsInsecure': True
+                    'tlsAllowInvalidCertificates': True
                 })
 
             self.client = MongoClient(
