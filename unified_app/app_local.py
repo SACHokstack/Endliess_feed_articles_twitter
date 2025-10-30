@@ -1,0 +1,431 @@
+#!/usr/bin/env python3
+"""
+Local development app.py - Spine News Aggregation System
+Designed to work with local MongoDB instead of Atlas for development
+"""
+
+import sys
+import os
+from flask import Flask, render_template, jsonify, request
+from flask_cors import CORS
+from datetime import datetime
+import logging
+import threading
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+import atexit
+
+# Add parent directory to path for imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Import managers
+from mongodb_manager import get_mongodb_manager
+from unified_app.twitter_mongo_manager import get_twitter_manager
+
+# Setup logging for development
+DEBUG_MODE = True  # Always True for local development
+
+logging.basicConfig(
+    level=logging.DEBUG if DEBUG_MODE else logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('logs/unified_app.log'),
+        logging.StreamHandler()
+    ]
+)
+
+logger = logging.getLogger(__name__)
+
+# Import scrapers first so we can handle import errors properly
+from spine_market_scraper import SpineMarketScraper
+try:
+    sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../twitter-scraper'))
+    from twitter import download_tweets_and_media, search_tweets_by_keyword
+    TWITTER_AVAILABLE = True
+    logger.info("Twitter scraper functions imported successfully")
+except ImportError as e:
+    TWITTER_AVAILABLE = False
+    logger.warning(f"Twitter scraper not available: {e}")
+    logger.info("Using local development mode without Twitter scraping")
+
+# Initialize Flask app
+app = Flask(__name__)
+
+# CORS configuration for development
+CORS(app, origins=["*"])
+
+# Initialize managers with local MongoDB config
+try:
+    # For local development, create a temporary config
+    local_config = {
+        'connection_string': 'mongodb://localhost:27019',
+        'database_name': 'Beautiful_Spine',
+        'collections': {
+            'articles': 'articles',
+            'scraper_runs': 'scraper_runs',
+            'seen_urls': 'seen_urls',
+            'stats': 'stats'
+        }
+    }
+    
+    # Create a temporary config file for local development
+    import json
+    os.makedirs('../config', exist_ok=True)
+    with open('../config/mongodb_local.json', 'w') as f:
+        json.dump(local_config, f, indent=2)
+    
+    spine_db = get_mongodb_manager('../config/mongodb_local.json')
+    twitter_db = get_twitter_manager('../config/mongodb_local.json')
+    
+    logger.info("✅ Connected to local MongoDB for development")
+    
+except Exception as e:
+    logger.error(f"❌ Failed to connect to local MongoDB: {e}")
+    logger.error("Make sure MongoDB is running on localhost:27019")
+    logger.info("You can start MongoDB with: ./start_mongodb.sh")
+    
+    # Create dummy managers for development
+    class DummyManager:
+        def __init__(self):
+            self.config = local_config if 'local_config' in locals() else {}
+        
+        def get_all_articles(self):
+            return []
+        
+        def add_article(self, article):
+            return {'status': 'success', 'message': 'Development mode'}
+        
+        def get_stats(self):
+            return {'total_articles': 0, 'last_updated': datetime.now().isoformat()}
+    
+    spine_db = DummyManager()
+    twitter_db = DummyManager()
+    logger.warning("⚠️  Using dummy managers for development (no database connection)")
+
+# Background task tracking
+scraping_tasks = {}
+task_lock = threading.Lock()
+
+# Scheduler for automatic scraping (disabled in development)
+scheduler = BackgroundScheduler()
+
+def automatic_article_scraping():
+    """
+    Automatic scraping job that runs every 10 hours.
+    Scrapes all spine article sources.
+    Deduplication handled automatically via MongoDB seen_urls collection.
+    """
+    logger.info("Starting automatic article scraping...")
+
+    try:
+        scraper = SpineMarketScraper()
+        sources = ['spine_market_group', 'ortho_spine_news', 'beckers_spine']
+        limit = 5  # Small limit for development
+
+        for source_key in sources:
+            logger.info(f"Auto-scraping from {source_key}...")
+
+            # Get article URLs
+            article_urls = scraper.scrape_article_listing_page(source_key, limit=limit)
+
+            # Scrape each article - duplicates automatically handled by database
+            for url in article_urls:
+                article = scraper.scrape_article(url)
+                if article:
+                    # Add to database - deduplication happens automatically via seen_urls
+                    result = spine_db.add_article(article)
+                    logger.info(f"✅ Scraped: {article.get('title', '')[:50]}... [{result.get('status', 'unknown')}]")
+
+        logger.info("Automatic scraping complete")
+
+    except Exception as e:
+        logger.error(f"Error in automatic scraping: {e}")
+
+# Initialize scheduler (disabled in development)
+if DEBUG_MODE:
+    logger.info("🛠️  Development mode - auto-scraping disabled")
+    # scheduler.add_job(
+    #     func=automatic_article_scraping,
+    #     trigger=IntervalTrigger(hours=10),
+    #     id='auto_article_scraping',
+    #     name='Automatic Article Scraping',
+    #     replace_existing=True
+    # )
+else:
+    scheduler.add_job(
+        func=automatic_article_scraping,
+        trigger=IntervalTrigger(hours=10),
+        id='auto_article_scraping',
+        name='Automatic Article Scraping',
+        replace_existing=True
+    )
+
+# Run once on startup (disabled in development)
+def run_initial_scraping():
+    """Run scraping once when app starts."""
+    if DEBUG_MODE:
+        logger.info("🛠️  Development mode - skipping initial scraping")
+        return
+    threading.Thread(target=automatic_article_scraping, daemon=True).start()
+
+# Shutdown scheduler on exit
+atexit.register(lambda: scheduler.shutdown())
+
+def create_unified_feed_item(item: dict, item_type: str) -> dict:
+    """
+    Convert article or tweet to unified feed format.
+    """
+    if item_type == 'article':
+        return {
+            'id': item.get('url', ''),
+            'type': 'article',
+            'date': item.get('scraped_at', ''),
+            'content': {
+                'title': item.get('title', ''),
+                'text': item.get('content', '')[:500] + '...' if len(item.get('content', '')) > 500 else item.get('content', ''),
+                'summary': item.get('content', '')[:200] + '...' if len(item.get('content', '')) > 200 else item.get('content', '')
+            },
+            'source': {
+                'name': item.get('website_name', 'Unknown'),
+                'type': 'spine_article'
+            },
+            'media': [],
+            'metadata': {
+                'financial_mentions': item.get('financial_mentions', []),
+                'spine_procedures': item.get('spine_procedures', []),
+                'content_length': item.get('content_length', 0)
+            },
+            'url': item.get('url', '')
+        }
+    elif item_type == 'tweet':
+        return {
+            'id': item.get('tweet_id', item.get('id', '')),
+            'type': 'tweet',
+            'date': item.get('date', ''),
+            'content': {
+                'title': f"Tweet by @{item.get('username', item.get('original_author', 'unknown'))}",
+                'text': item.get('text', item.get('original_text', '')),
+                'summary': item.get('text', item.get('original_text', ''))[:200]
+            },
+            'source': {
+                'name': f"@{item.get('username', item.get('original_author', 'unknown'))}",
+                'type': 'twitter'
+            },
+            'media': [],
+            'metadata': {
+                'tweet_type': item.get('type', 'ORIGINAL'),
+                'has_media': item.get('has_media', False)
+            },
+            'url': f"https://twitter.com/{item.get('original_author', item.get('username', 'unknown'))}/status/{item.get('tweet_id', item.get('id', ''))}"
+        }
+
+# Routes
+
+@app.route('/')
+def index():
+    """Main page - unified feed interface."""
+    return render_template('index.html')
+
+@app.route('/article')
+def article_detail():
+    """Article detail page - shows full article content."""
+    try:
+        article_url = request.args.get('url')
+
+        if not article_url:
+            return render_template('404.html'), 404
+
+        # URL decode the article URL
+        from urllib.parse import unquote
+        decoded_url = unquote(article_url)
+
+        # Get article from database
+        article = spine_db.get_article_by_id(decoded_url)
+
+        if not article:
+            logger.error(f"Article not found for URL: {decoded_url}")
+            return render_template('404.html'), 404
+
+        return render_template('article.html', article=article)
+
+    except Exception as e:
+        logger.error(f"Error getting article detail: {e}")
+        return render_template('404.html'), 404
+
+@app.route('/api/feed')
+def get_unified_feed():
+    """
+    Get unified feed with articles and tweets sorted chronologically.
+    """
+    try:
+        # Get query parameters
+        limit = int(request.args.get('limit', 50))
+        skip = int(request.args.get('skip', 0))
+        feed_type = request.args.get('type', 'both')
+
+        unified_feed = []
+
+        # Get articles
+        if feed_type in ['both', 'article']:
+            all_articles = spine_db.get_all_articles()
+            
+            # Convert to unified format
+            for article in all_articles:
+                unified_feed.append(create_unified_feed_item(article, 'article'))
+
+        # Get tweets (mock data for development)
+        if feed_type in ['both', 'tweet']:
+            mock_tweets = [
+                {
+                    'id': 'mock_tweet_1',
+                    'tweet_id': '123456789',
+                    'username': 'spine_expert',
+                    'original_author': 'spine_expert',
+                    'text': 'Latest developments in spinal surgery techniques...',
+                    'date': '2025-10-30T10:00:00.000Z',
+                    'type': 'ORIGINAL',
+                    'has_media': False
+                },
+                {
+                    'id': 'mock_tweet_2',
+                    'tweet_id': '123456790',
+                    'username': 'neuro_spine',
+                    'original_author': 'neuro_spine',
+                    'text': 'New research on minimally invasive spine procedures.',
+                    'date': '2025-10-30T09:30:00.000Z',
+                    'type': 'ORIGINAL',
+                    'has_media': True
+                }
+            ]
+            
+            for tweet in mock_tweets:
+                unified_feed.append(create_unified_feed_item(tweet, 'tweet'))
+
+        # Sort by date
+        unified_feed.sort(key=lambda x: x['date'], reverse=True)
+
+        # Apply pagination
+        total_items = len(unified_feed)
+        unified_feed = unified_feed[skip:skip+limit]
+
+        return jsonify({
+            'success': True,
+            'feed': unified_feed,
+            'total': total_items,
+            'limit': limit,
+            'skip': skip,
+            'has_more': (skip + limit) < total_items
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting unified feed: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/stats')
+def get_stats():
+    """Get combined statistics from both systems."""
+    try:
+        spine_stats = spine_db.get_stats()
+        
+        # Mock Twitter stats for development
+        twitter_stats = {
+            'total_tweets': 2,
+            'total_users': 1,
+            'users': {'spine_expert': {'tweets': 1}},
+            'keywords': {}
+        }
+
+        combined_stats = {
+            'spine_articles': {
+                'total': spine_stats.get('total_articles', 0),
+                'sources': spine_stats.get('sources', {})
+            },
+            'twitter': {
+                'total_tweets': twitter_stats.get('total_tweets', 0),
+                'total_users': twitter_stats.get('total_users', 0)
+            },
+            'combined': {
+                'total_items': spine_stats.get('total_articles', 0) + twitter_stats.get('total_tweets', 0),
+                'last_updated': datetime.now().isoformat()
+            },
+            'development_mode': DEBUG_MODE
+        }
+
+        return jsonify({
+            'success': True,
+            'stats': combined_stats
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting stats: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/sources')
+def get_sources():
+    """Get all available sources."""
+    try:
+        scraper = SpineMarketScraper()
+        spine_sources = [
+            {
+                'type': 'article',
+                'key': key,
+                'name': info['name'],
+                'url': info['base_url']
+            }
+            for key, info in scraper.sources.items()
+        ]
+
+        twitter_sources = [
+            {
+                'type': 'tweet',
+                'key': 'spine_expert',
+                'name': '@spine_expert',
+                'display_name': 'Spine Expert'
+            }
+        ]
+
+        return jsonify({
+            'success': True,
+            'sources': {
+                'spine': spine_sources,
+                'twitter': twitter_sources
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting sources: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# Create logs directory if it doesn't exist
+os.makedirs('logs', exist_ok=True)
+
+if __name__ == '__main__':
+    port = int(os.getenv('PORT', 5000))
+    
+    print("=" * 60)
+    print("🛠️  SPINE NEWS AGGREGATION SYSTEM - LOCAL DEVELOPMENT")
+    print("=" * 60)
+    print(f"🌍 Development Mode: {DEBUG_MODE}")
+    print(f"🚀 Server: http://localhost:{port}")
+    print(f"📊 Debug Level: {logging.getLevelName(logging.getLogger().level)}")
+    print(f"🔗 Twitter Integration: {'✅ Available' if TWITTER_AVAILABLE else '❌ Not Available'}")
+    print(f"🗄️  Database: Local MongoDB (localhost:27019)")
+    print("=" * 60)
+    print("📋 Available endpoints:")
+    print("   • GET  /                     - Main feed interface")
+    print("   • GET  /api/feed            - JSON feed data")
+    print("   • GET  /api/stats           - System statistics")
+    print("   • GET  /api/sources         - Available sources")
+    print("=" * 60)
+    print("💡 Tip: Use 'import_and_scrape()' to add articles manually")
+    print("=" * 60)
+
+    # Start scheduler
+    scheduler.start()
+    logger.info("Scheduler started")
+
+    # Run initial scraping in background (disabled in development)
+    run_initial_scraping()
+
+    # Start Flask development server
+    app.run(debug=True, host='0.0.0.0', port=port, use_reloader=True)

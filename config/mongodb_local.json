@@ -1,0 +1,10 @@
+{
+  "connection_string": "mongodb://localhost:27019",
+  "database_name": "Beautiful_Spine",
+  "collections": {
+    "articles": "articles",
+    "scraper_runs": "scraper_runs",
+    "seen_urls": "seen_urls",
+    "stats": "stats"
+  }
+}
