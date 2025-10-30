@@ -1,5 +1,5 @@
 {
-  "connection_string": "mongodb+srv://sachivcsv_db_user:tfLNVtw5PlMOFxI7@cluster0.sez8ihw.mongodb.net/spine_scraper",
+  "connection_string": "mongodb+srv://sachivcsv_db_user:tfLNVtw5PlMOFxI7@cluster0.sez8ihw.mongodb.net/spine_scraper?retryWrites=true&w=majority&tls=true",
   "database_name": "Beautiful_Spine",
   "collections": {
     "articles": "articles",
