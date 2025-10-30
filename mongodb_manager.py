@@ -56,11 +56,29 @@ class MongoDBManager:
         Args:
             config_path: Path to MongoDB configuration file
         """
-        # Use environment variable if no config path provided
-        if config_path is None:
-            config_path = os.getenv('MONGODB_CONFIG_PATH', 'config/mongodb_config.json')
-        
-        self.config = self._load_config(config_path)
+        # Priority: Environment variable > Config file
+        connection_string = os.getenv('MONGODB_URI')
+
+        if connection_string:
+            # Use environment variable for connection
+            logger.info("Using MongoDB connection string from MONGODB_URI environment variable")
+            self.config = {
+                'connection_string': connection_string,
+                'database_name': os.getenv('MONGODB_DATABASE', 'Beautiful_Spine'),
+                'collections': {
+                    'articles': 'articles',
+                    'scraper_runs': 'scraper_runs',
+                    'seen_urls': 'seen_urls',
+                    'stats': 'stats'
+                }
+            }
+        else:
+            # Fall back to config file
+            if config_path is None:
+                config_path = os.getenv('MONGODB_CONFIG_PATH', 'config/mongodb_config.json')
+            self.config = self._load_config(config_path)
+            logger.info(f"Using MongoDB connection from config file: {config_path}")
+
         self.lock = threading.Lock()
 
         # Connect to MongoDB
