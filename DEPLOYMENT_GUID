@@ -107,9 +107,13 @@ PORT=5000
 ## Important Notes
 
 ### Media Files
-- Media files from Twitter are **not included** in deployment
-- In production, media requests return informative messages
-- For production media support, consider:
+- ✅ **Media files ARE included** in deployment
+- Twitter media files (images/videos) are served from the local filesystem
+- Stored in `twitter-scraper/*/media_tweets/` directories
+- Served via Flask routes `/media/<filename>` and `/media/keyword/<keyword>/<filename>`
+- The application will automatically serve existing media files
+- Media requests that don't exist will return 404 responses
+- For additional media storage options, consider:
   - AWS S3 integration
   - Cloudinary
   - Railway File Storage

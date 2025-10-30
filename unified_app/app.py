@@ -645,14 +645,6 @@ def remove_twitter_user(username):
 def serve_twitter_media(filename):
     """Serve Twitter media files from various directories"""
     try:
-        # In production, media files are not available
-        if not DEBUG_MODE:
-            return jsonify({
-                'error': 'Media files not available in production deployment',
-                'filename': filename,
-                'message': 'For production, consider using cloud storage for media files'
-            }), 404
-        
         # Search for the media file in all Twitter scraping directories
         import glob
         
@@ -674,7 +666,8 @@ def serve_twitter_media(filename):
             return send_from_directory(media_dir, filename)
         else:
             logger.warning(f"Media file not found: {filename}")
-            return jsonify({'error': 'Media file not found'}), 404
+            # Return 404 for missing files
+            return jsonify({'error': 'Media file not found', 'filename': filename}), 404
             
     except Exception as e:
         logger.error(f"Error serving media file {filename}: {e}")
@@ -685,15 +678,6 @@ def serve_twitter_media(filename):
 def serve_keyword_media(keyword, filename):
     """Serve Twitter media files from keyword searches"""
     try:
-        # In production, media files are not available
-        if not DEBUG_MODE:
-            return jsonify({
-                'error': 'Media files not available in production deployment',
-                'keyword': keyword,
-                'filename': filename,
-                'message': 'For production, consider using cloud storage for media files'
-            }), 404
-        
         # Get the base directory for twitter scraper
         twitter_scraper_base = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'twitter-scraper')
         
@@ -712,7 +696,8 @@ def serve_keyword_media(keyword, filename):
             return send_from_directory(media_dir, filename)
         else:
             logger.warning(f"Keyword media file not found: {filename}")
-            return jsonify({'error': 'Media file not found'}), 404
+            # Return 404 for missing files
+            return jsonify({'error': 'Media file not found', 'keyword': keyword, 'filename': filename}), 404
             
     except Exception as e:
         logger.error(f"Error serving keyword media file {filename}: {e}")

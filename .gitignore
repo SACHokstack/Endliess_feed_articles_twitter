@@ -1,5 +1,6 @@
 # Production deployment files
 .env
+.env.example
 logs/
 __pycache__/
 *.pyc
@@ -18,14 +19,6 @@ pip-delete-this-directory.txt
 *.swp
 *.swo
 *~
-
-# Media files (not deployed to cloud)
-twitter-scraper/*/media_tweets/
-twitter-scraper/*/text_tweets/
-*.mp4
-*.jpg
-*.jpeg
-*.png
 
 # Temporary files
 tmp/
@@ -47,3 +40,46 @@ Thumbs.db
 .Spotlight-V100
 .Trashes
 ehthumbs.db
+
+# Python bytecode cache
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
