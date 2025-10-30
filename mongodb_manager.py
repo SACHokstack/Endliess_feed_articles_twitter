@@ -8,14 +8,31 @@ from pymongo.errors import DuplicateKeyError, ConnectionFailure
 import threading
 
 # Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('logs/scraper.log'),
-        logging.StreamHandler()
-    ]
-)
+import os
+
+# Ensure logs directory exists
+os.makedirs('logs', exist_ok=True)
+
+# Check if running in production environment
+DEBUG_MODE = os.getenv('DEBUG', 'False').lower() == 'true'
+
+if DEBUG_MODE:
+    # Development logging - console only
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[logging.StreamHandler()]
+    )
+else:
+    # Production logging - file + console
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler('logs/scraper.log'),
+            logging.StreamHandler()
+        ]
+    )
 
 logger = logging.getLogger(__name__)
 

@@ -59,7 +59,7 @@ try:
     # For local development, create a temporary config
     local_config = {
         'connection_string': 'mongodb://localhost:27019',
-        'database_name': 'Beautiful_Spine',
+        'database_name': 'spine_articles_db',
         'collections': {
             'articles': 'articles',
             'scraper_runs': 'scraper_runs',
