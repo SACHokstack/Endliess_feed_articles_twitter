@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: endless-feed-articles-twitter
+    env: python
+    pythonVersion: "3.12"
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT unified_app.app:app --timeout 120 --workers 2 --max-requests 1000 --max-requests-jitter 100 --preload
+    envVars:
+      - key: DEBUG
+        value: "False"
+      - key: ENVIRONMENT
+        value: "production"
+      - key: PORT
+        value: "5000"
+      - key: MONGODB_DATABASE_NAME
+        value: "Beautiful_Spine"
+      # Note: Set MONGODB_CONNECTION_STRING manually in Render dashboard
+      # - key: MONGODB_CONNECTION_STRING
+      #   value: "mongodb+srv://user:pass@cluster.mongodb.net/Beautiful_Spine"

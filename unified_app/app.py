@@ -66,8 +66,43 @@ if os.getenv('MONGODB_CONNECTION_STRING'):
     if os.path.exists('config/mongodb_config.json'):
         config_path = 'config/mongodb_config.json'
 
-spine_db = get_mongodb_manager(config_path)
-twitter_db = get_twitter_manager(config_path)
+try:
+    spine_db = get_mongodb_manager(config_path)
+    twitter_db = get_twitter_manager(config_path)
+    
+    # Check if databases are available
+    if spine_db.client is None:
+        logger.warning("MongoDB connection failed - running with limited functionality")
+        
+    if twitter_db.client is None:
+        logger.warning("Twitter MongoDB connection failed - Twitter features disabled")
+        
+except Exception as e:
+    logger.error(f"Database initialization failed: {e}")
+    # Create dummy managers for fallback
+    class DummyManager:
+        def __init__(self):
+            self.client = None
+            self.config = {}
+        
+        def get_all_articles(self):
+            return []
+        
+        def add_article(self, article):
+            return {'status': 'error', 'reason': 'database_unavailable'}
+        
+        def get_stats(self):
+            return {'total_articles': 0, 'total_tweets': 0}
+            
+        def get_tweets(self, *args, **kwargs):
+            return []
+            
+        def get_users(self):
+            return []
+    
+    spine_db = DummyManager()
+    twitter_db = DummyManager()
+    logger.warning("Using dummy managers - full functionality not available")
 
 # Background task tracking
 scraping_tasks = {}
@@ -730,7 +765,15 @@ if __name__ == '__main__':
     logger.info("Starting Unified Flask App")
     logger.info(f"Debug Mode: {DEBUG_MODE}")
     logger.info(f"Port: {port}")
-    logger.info(f"Spine DB: {spine_db.config['database_name']}")
+    
+    # Safe database info logging
+    try:
+        if hasattr(spine_db, 'config') and spine_db.config:
+            logger.info(f"Spine DB: {spine_db.config.get('database_name', 'N/A')}")
+        else:
+            logger.info("Spine DB: Not available (using dummy manager)")
+    except Exception:
+        logger.info("Spine DB: Configuration unavailable")
 
     # Start scheduler
     scheduler.start()

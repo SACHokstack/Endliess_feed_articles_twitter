@@ -82,20 +82,26 @@ class MongoDBManager:
         self.lock = threading.Lock()
 
         # Connect to MongoDB
+        self.client = None
         try:
-            # Simple connection - let pymongo handle SSL automatically
+            # Production-ready connection with SSL support
             self.client = MongoClient(
                 self.config['connection_string'],
-                serverSelectionTimeoutMS=30000
+                serverSelectionTimeoutMS=30000,
+                ssl=True,
+                retryWrites=True,
+                w='majority'
             )
 
             # Test connection
             self.client.server_info()
             logger.info(f"Connected to MongoDB at {self.config['connection_string']}")
 
-        except ConnectionFailure as e:
+        except Exception as e:
             logger.error(f"Failed to connect to MongoDB: {e}")
-            raise
+            logger.warning("Continuing with limited functionality - database connection failed")
+            self.client = None  # Graceful degradation
+            # Don't raise - allow app to continue without database
 
         # Get database and collections
         self.db = self.client[self.config['database_name']]
