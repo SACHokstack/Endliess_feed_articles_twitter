@@ -43,9 +43,9 @@ try:
     from twitter import download_tweets_and_media, search_tweets_by_keyword
     TWITTER_AVAILABLE = True
     logger.info("Twitter scraper functions imported successfully")
-except ImportError as e:
+except ImportError:
     TWITTER_AVAILABLE = False
-    logger.warning(f"Twitter scraper not available: {e}")
+    logger.info("Twitter scraper module not found - continuing without Twitter functionality")
     # Twitter scraper functions not available
 
 # Initialize Flask app
