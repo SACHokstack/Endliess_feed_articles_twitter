@@ -162,15 +162,24 @@ def create_unified_feed_item(item: dict, item_type: str) -> dict:
         }
 
     elif item_type == 'tweet':
-        # Handle media files
-        media = []
-        if item.get('has_media') and item.get('media_files'):
-            for media_file in item['media_files']:
-                media.append({
-                    'type': media_file.get('type', 'photo'),
-                    'url': f"/media/{media_file.get('file', '')}",
-                    'thumbnail': f"/media/{media_file.get('file', '')}"
-                })
+            # Handle media files - prefer GridFS storage
+            media = []
+            if item.get('has_media_gridfs') and item.get('media_files_gridfs'):
+                # Use GridFS file IDs
+                for media_file in item['media_files_gridfs']:
+                    media.append({
+                        'type': media_file.get('type', 'photo'),
+                        'url': f"/media/{media_file.get('gridfs_id', '')}",
+                        'thumbnail': f"/media/{media_file.get('gridfs_id', '')}"
+                    })
+            elif item.get('has_media') and item.get('media_files'):
+                # Fallback to local file paths (development only)
+                for media_file in item['media_files']:
+                    media.append({
+                        'type': media_file.get('type', 'photo'),
+                        'url': f"/media/{media_file.get('file', '')}",
+                        'thumbnail': f"/media/{media_file.get('file', '')}"
+                    })
 
         return {
             'id': item.get('tweet_id', item.get('id', '')),
@@ -641,36 +650,44 @@ def remove_twitter_user(username):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@app.route('/media/<path:filename>')
-def serve_twitter_media(filename):
-    """Serve Twitter media files from various directories"""
+@app.route('/media/<gridfs_id>')
+def serve_twitter_media(gridfs_id):
+    """Serve Twitter media files from GridFS"""
     try:
-        # Search for the media file in all Twitter scraping directories
+        logger.info(f"Serving media from GridFS: {gridfs_id}")
+        
+        # Try to serve from GridFS first
+        media_response = twitter_db.serve_media_from_gridfs(gridfs_id)
+        if media_response:
+            return media_response
+        
+        # Fallback: serve from local filesystem for development
+        logger.info(f"Falling back to local filesystem for: {gridfs_id}")
+        
         import glob
         
         # Get the base directory for twitter scraper
         twitter_scraper_base = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'twitter-scraper')
         
         # Search for the file in all media_tweets directories
-        pattern = f'{twitter_scraper_base}/*/media_tweets/{filename}'
+        pattern = f'{twitter_scraper_base}/*/media_tweets/{gridfs_id}'
         matching_files = glob.glob(pattern)
         
         if matching_files:
             media_path = matching_files[0]
-            logger.info(f"Serving media file: {media_path}")
+            logger.info(f"Serving media file from local: {media_path}")
             
             # Get the directory and filename
             media_dir = os.path.dirname(media_path)
             
             from flask import send_from_directory
-            return send_from_directory(media_dir, filename)
+            return send_from_directory(media_dir, gridfs_id)
         else:
-            logger.warning(f"Media file not found: {filename}")
-            # Return 404 for missing files
-            return jsonify({'error': 'Media file not found', 'filename': filename}), 404
+            logger.warning(f"Media file not found: {gridfs_id}")
+            return jsonify({'error': 'Media file not found', 'filename': gridfs_id}), 404
             
     except Exception as e:
-        logger.error(f"Error serving media file {filename}: {e}")
+        logger.error(f"Error serving media file {gridfs_id}: {e}")
         return jsonify({'error': str(e)}), 500
 
 

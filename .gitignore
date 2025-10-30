@@ -83,3 +83,23 @@ logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Large media files (exceed GitHub's 100MB limit)
+twitter-scraper/*/media_tweets/*.mp4
+twitter-scraper/*/media_tweets/*.mov
+twitter-scraper/*/media_tweets/*.avi
+twitter-scraper/*/media_tweets/*.mkv
+twitter-scraper/*/media_tweets/*.webm
+twitter-scraper/*/media_tweets/*.flv
+twitter-scraper/*/media_tweets/*.wmv
+
+# Large image files (exceed GitHub's 100MB limit)
+twitter-scraper/*/media_tweets/*.png
+twitter-scraper/*/media_tweets/*.jpg
+twitter-scraper/*/media_tweets/*.jpeg
+twitter-scraper/*/media_tweets/*.gif
+twitter-scraper/*/media_tweets/*.webp
+twitter-scraper/*/media_tweets/*.svg
+twitter-scraper/*/media_tweets/*.bmp
+twitter-scraper/*/media_tweets/*.tiff
+twitter-scraper/*/media_tweets/*.tif

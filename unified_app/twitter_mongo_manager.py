@@ -10,6 +10,11 @@ from datetime import datetime
 from typing import Dict, List, Optional
 from pymongo import MongoClient, ASCENDING, DESCENDING
 from pymongo.errors import DuplicateKeyError, ConnectionFailure
+from pymongo import ObjectId
+from gridfs import GridFS
+import gridfs
+import hashlib
+import mimetypes
 import threading
 
 logger = logging.getLogger(__name__)
@@ -47,16 +52,19 @@ class TwitterMongoManager:
             raise
 
         # Get database and collections
-        self.db = self.client[self.config['database_name']]
-        self.tweets_collection = self.db['tweets']
-        self.twitter_users_collection = self.db['twitter_users']
-        self.twitter_stats_collection = self.db['twitter_stats']
-
-        # Create indexes
-        self._create_indexes()
-        self._initialize_stats()
-
-        logger.info("Twitter MongoDB Manager initialized")
+                self.db = self.client[self.config['database_name']]
+                self.tweets_collection = self.db['tweets']
+                self.twitter_users_collection = self.db['twitter_users']
+                self.twitter_stats_collection = self.db['twitter_stats']
+        
+                # Initialize GridFS for media storage
+                self.gridfs = GridFS(self.db)
+        
+                # Create indexes
+                self._create_indexes()
+                self._initialize_stats()
+        
+                logger.info("Twitter MongoDB Manager initialized")
 
     def _load_config(self, config_path: str) -> Dict:
         """Load MongoDB configuration from JSON file."""
@@ -112,34 +120,41 @@ class TwitterMongoManager:
             return {'status': 'error', 'reason': 'missing_id'}
 
         with self.lock:
-            try:
-                # Add scraped_at timestamp if not present
-                if 'scraped_at' not in tweet:
-                    tweet['scraped_at'] = datetime.now().isoformat()
-
-                # Ensure tweet_id field exists
-                tweet['tweet_id'] = tweet_id
-
-                # Insert into MongoDB
-                result = self.tweets_collection.insert_one(tweet)
-
-                # Update stats
-                self._update_stats(
-                    tweets=1,
-                    username=tweet.get('username') or tweet.get('original_author'),
-                    keyword=tweet.get('keyword')
-                )
-
-                total_tweets = self.tweets_collection.count_documents({})
-
-                logger.info(f"✓ SAVED TWEET: {tweet_id} (Total: {total_tweets})")
-
-                return {
-                    'status': 'success',
-                    'tweet_id': tweet_id,
-                    'total_tweets': total_tweets,
-                    'mongodb_id': str(result.inserted_id)
-                }
+                    try:
+                        # Add scraped_at timestamp if not present
+                        if 'scraped_at' not in tweet:
+                            tweet['scraped_at'] = datetime.now().isoformat()
+        
+                        # Ensure tweet_id field exists
+                        tweet['tweet_id'] = tweet_id
+        
+                        # Store media files in GridFS if present
+                        if tweet.get('has_media') and tweet.get('media_files'):
+                            tweet = self.store_media_for_tweet(tweet)
+                            logger.info(f"Stored media files for tweet {tweet_id} in GridFS")
+        
+                        # Insert into MongoDB
+                        result = self.tweets_collection.insert_one(tweet)
+        
+                        # Update stats
+                        self._update_stats(
+                            tweets=1,
+                            username=tweet.get('username') or tweet.get('original_author'),
+                            keyword=tweet.get('keyword')
+                        )
+        
+                        total_tweets = self.tweets_collection.count_documents({})
+                        media_count = len(tweet.get('media_files_gridfs', []))
+        
+                        logger.info(f"✓ SAVED TWEET: {tweet_id} with {media_count} media files (Total: {total_tweets})")
+        
+                        return {
+                            'status': 'success',
+                            'tweet_id': tweet_id,
+                            'total_tweets': total_tweets,
+                            'media_files_stored': media_count,
+                            'mongodb_id': str(result.inserted_id)
+                        }
 
             except DuplicateKeyError:
                 logger.info(f"DUPLICATE TWEET: {tweet_id}")
@@ -345,11 +360,164 @@ class TwitterMongoManager:
 
             return stats_doc
 
-    def close(self):
-        """Close MongoDB connection."""
-        if self.client:
-            self.client.close()
-            logger.info("Twitter MongoDB connection closed")
+    def upload_media_file(self, file_path: str, tweet_id: str, media_type: str = 'photo') -> Optional[str]:
+            """
+            Upload a media file to GridFS.
+            
+            Args:
+                file_path: Path to the media file
+                tweet_id: ID of the tweet this media belongs to
+                media_type: Type of media (photo, video, gif)
+                
+            Returns:
+                GridFS file ID if successful, None otherwise
+            """
+            try:
+                if not os.path.exists(file_path):
+                    logger.warning(f"Media file not found: {file_path}")
+                    return None
+                    
+                # Create unique filename with tweet ID
+                filename = os.path.basename(file_path)
+                gridfs_filename = f"{tweet_id}_{filename}"
+                
+                # Get file content and metadata
+                with open(file_path, 'rb') as f:
+                    content = f.read()
+                    
+                # Calculate file hash for deduplication
+                file_hash = hashlib.md5(content).hexdigest()
+                
+                # Check if file already exists
+                existing_file = self.gridfs.find_one({"md5": file_hash})
+                if existing_file:
+                    logger.info(f"Media file already exists in GridFS: {gridfs_filename}")
+                    return str(existing_file._id)
+                
+                # Determine content type
+                content_type, _ = mimetypes.guess_type(file_path)
+                if not content_type:
+                    content_type = 'application/octet-stream'
+                
+                # Upload to GridFS
+                file_id = self.gridfs.put(
+                    content,
+                    filename=gridfs_filename,
+                    content_type=content_type,
+                    tweet_id=tweet_id,
+                    original_filename=filename,
+                    upload_date=datetime.now(),
+                    media_type=media_type
+                )
+                
+                logger.info(f"Uploaded media to GridFS: {gridfs_filename} (ID: {file_id})")
+                return str(file_id)
+                
+            except Exception as e:
+                logger.error(f"Error uploading media file {file_path}: {e}")
+                return None
+        
+        def get_media_file(self, gridfs_id: str) -> Optional[Dict]:
+            """
+            Retrieve a media file from GridFS.
+            
+            Args:
+                gridfs_id: GridFS file ID
+                
+            Returns:
+                Dict with file content and metadata, None if not found
+            """
+            try:
+                from bson.objectid import ObjectId
+                
+                file_obj = self.gridfs.get(ObjectId(gridfs_id))
+                
+                return {
+                    'content': file_obj.read(),
+                    'filename': file_obj.filename,
+                    'content_type': file_obj.content_type,
+                    'length': file_obj.length,
+                    'upload_date': file_obj.upload_date
+                }
+                
+            except Exception as e:
+                logger.error(f"Error retrieving media file {gridfs_id}: {e}")
+                return None
+        
+        def store_media_for_tweet(self, tweet: Dict) -> Dict:
+            """
+            Process and store media files for a tweet in GridFS.
+            
+            Args:
+                tweet: Tweet dictionary with media file references
+                
+            Returns:
+                Updated tweet dictionary with GridFS file IDs
+            """
+            tweet_id = tweet.get('tweet_id')
+            if not tweet_id:
+                return tweet
+                
+            media_files = tweet.get('media_files', [])
+            stored_media = []
+            
+            for media_file in media_files:
+                local_path = media_file.get('file', '')
+                
+                # Convert local path to GridFS ID
+                if local_path:
+                    gridfs_id = self.upload_media_file(
+                        local_path,
+                        tweet_id,
+                        media_file.get('type', 'photo')
+                    )
+                    
+                    if gridfs_id:
+                        # Update media file with GridFS reference
+                        stored_media.append({
+                            'gridfs_id': gridfs_id,
+                            'type': media_file.get('type', 'photo'),
+                            'original_filename': os.path.basename(local_path),
+                            'size': media_file.get('size', 0)
+                        })
+                        
+                        logger.info(f"Stored media for tweet {tweet_id}: {media_file.get('file')} -> GridFS {gridfs_id}")
+            
+            # Update tweet with GridFS media references
+            tweet['media_files_gridfs'] = stored_media
+            tweet['has_media_gridfs'] = len(stored_media) > 0
+            
+            return tweet
+        
+        def serve_media_from_gridfs(self, gridfs_id: str):
+            """
+            Serve media file directly from GridFS via Flask response.
+            
+            Args:
+                gridfs_id: GridFS file ID
+                
+            Returns:
+                Flask response with media content
+            """
+            try:
+                from flask import Response
+                from bson.objectid import ObjectId
+                
+                file_data = self.get_media_file(gridfs_id)
+                if not file_data:
+                    return None
+                    
+                return Response(
+                    file_data['content'],
+                    mimetype=file_data['content_type'],
+                    headers={
+                        'Content-Disposition': f'inline; filename="{file_data["filename"]}"'
+                    }
+                )
+                
+            except Exception as e:
+                logger.error(f"Error serving media from GridFS {gridfs_id}: {e}")
+                return None
 
 
 # Singleton instance
