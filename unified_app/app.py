@@ -162,24 +162,24 @@ def create_unified_feed_item(item: dict, item_type: str) -> dict:
         }
 
     elif item_type == 'tweet':
-            # Handle media files - prefer GridFS storage
-            media = []
-            if item.get('has_media_gridfs') and item.get('media_files_gridfs'):
-                # Use GridFS file IDs
-                for media_file in item['media_files_gridfs']:
-                    media.append({
-                        'type': media_file.get('type', 'photo'),
-                        'url': f"/media/{media_file.get('gridfs_id', '')}",
-                        'thumbnail': f"/media/{media_file.get('gridfs_id', '')}"
-                    })
-            elif item.get('has_media') and item.get('media_files'):
-                # Fallback to local file paths (development only)
-                for media_file in item['media_files']:
-                    media.append({
-                        'type': media_file.get('type', 'photo'),
-                        'url': f"/media/{media_file.get('file', '')}",
-                        'thumbnail': f"/media/{media_file.get('file', '')}"
-                    })
+        # Handle media files - prefer GridFS storage
+        media = []
+        if item.get('has_media_gridfs') and item.get('media_files_gridfs'):
+            # Use GridFS file IDs
+            for media_file in item['media_files_gridfs']:
+                media.append({
+                    'type': media_file.get('type', 'photo'),
+                    'url': f"/media/{media_file.get('gridfs_id', '')}",
+                    'thumbnail': f"/media/{media_file.get('gridfs_id', '')}"
+                })
+        elif item.get('has_media') and item.get('media_files'):
+            # Fallback to local file paths (development only)
+            for media_file in item['media_files']:
+                media.append({
+                    'type': media_file.get('type', 'photo'),
+                    'url': f"/media/{media_file.get('file', '')}",
+                    'thumbnail': f"/media/{media_file.get('file', '')}"
+                })
 
         return {
             'id': item.get('tweet_id', item.get('id', '')),
