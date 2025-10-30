@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import Dict, List, Optional
 from pymongo import MongoClient, ASCENDING, DESCENDING
 from pymongo.errors import DuplicateKeyError, ConnectionFailure
-from pymongo import ObjectId
+from bson import ObjectId
 from gridfs import GridFS
 import gridfs
 import hashlib
