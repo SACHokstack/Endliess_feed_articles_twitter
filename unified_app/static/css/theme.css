@@ -1,0 +1,96 @@
+/* Theme Variables - Dark & Light Mode */
+
+:root[data-theme="dark"] {
+    /* Background colors */
+    --bg-primary: #15202b;
+    --bg-secondary: #192734;
+    --bg-tertiary: #22303c;
+    --bg-hover: #1c2938;
+
+    /* Text colors */
+    --text-primary: #e7e9ea;
+    --text-secondary: #8b98a5;
+    --text-tertiary: #6e767d;
+
+    /* Border colors */
+    --border-primary: #38444d;
+    --border-secondary: #2f3336;
+
+    /* Accent colors */
+    --accent-primary: #1d9bf0;
+    --accent-secondary: #8b5cf6;
+    --accent-success: #00ba7c;
+    --accent-warning: #ffd400;
+    --accent-error: #f4212e;
+
+    /* Card colors */
+    --card-bg: #192734;
+    --card-border: #38444d;
+    --card-hover: #1c2938;
+
+    /* Button colors */
+    --btn-primary-bg: #1d9bf0;
+    --btn-primary-hover: #1a8cd8;
+    --btn-secondary-bg: #38444d;
+    --btn-secondary-hover: #4a5661;
+
+    /* Input colors */
+    --input-bg: #22303c;
+    --input-border: #38444d;
+    --input-focus: #1d9bf0;
+
+    /* Shadow */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme="light"] {
+    /* Background colors */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f7f9f9;
+    --bg-tertiary: #eff3f4;
+    --bg-hover: #f7f9f9;
+
+    /* Text colors */
+    --text-primary: #0f1419;
+    --text-secondary: #536471;
+    --text-tertiary: #8b98a5;
+
+    /* Border colors */
+    --border-primary: #eff3f4;
+    --border-secondary: #e1e8ed;
+
+    /* Accent colors */
+    --accent-primary: #1d9bf0;
+    --accent-secondary: #8b5cf6;
+    --accent-success: #00ba7c;
+    --accent-warning: #ffd400;
+    --accent-error: #f4212e;
+
+    /* Card colors */
+    --card-bg: #ffffff;
+    --card-border: #eff3f4;
+    --card-hover: #f7f9f9;
+
+    /* Button colors */
+    --btn-primary-bg: #1d9bf0;
+    --btn-primary-hover: #1a8cd8;
+    --btn-secondary-bg: #eff3f4;
+    --btn-secondary-hover: #e1e8ed;
+
+    /* Input colors */
+    --input-bg: #ffffff;
+    --input-border: #cfd9de;
+    --input-focus: #1d9bf0;
+
+    /* Shadow */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.12);
+}
+
+/* Theme transition */
+* {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}

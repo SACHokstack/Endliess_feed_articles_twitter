@@ -1,0 +1,173 @@
+# Spine News Aggregation System - Deployment Guide
+
+This guide covers deploying the Spine News Aggregation System to Render or Railway.
+
+## Prerequisites
+
+- MongoDB Atlas account (already configured)
+- Render.com or Railway.app account
+- Git repository with your code
+
+## Quick Deploy to Render
+
+### 1. Create GitHub Repository
+```bash
+git init
+git add .
+git commit -m "Initial commit"
+git branch -M main
+git remote add origin https://github.com/yourusername/spine-news-aggregator.git
+git push -u origin main
+```
+
+### 2. Deploy to Render
+
+1. Go to [Render.com](https://render.com)
+2. Click "New +" → "Web Service"
+3. Connect your GitHub repository
+4. Configure service:
+   - **Name**: `spine-news-aggregator`
+   - **Region**: Choose closest to your users
+   - **Branch**: `main`
+   - **Root Directory**: Leave empty
+   - **Runtime**: Python 3
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `gunicorn --bind 0.0.0.0:$PORT unified_app.app:app --timeout 120 --workers 2`
+
+### 3. Environment Variables
+Set these in Render dashboard:
+```
+DEBUG=False
+MONGODB_CONNECTION_STRING=mongodb+srv://sachivcsv_db_user:tfLNVtw5PlMOFxI7@cluster0.sez8ihw.mongodb.net/spine_scraper
+MONGODB_DATABASE_NAME=Beautiful_Spine
+```
+
+### 4. Deploy
+Click "Create Web Service" and wait for deployment.
+
+## Quick Deploy to Railway
+
+### 1. Deploy to Railway
+
+1. Go to [Railway.app](https://railway.app)
+2. Click "New Project" → "Deploy from GitHub repo"
+3. Select your repository
+4. Railway will auto-detect Python and deploy
+
+### 2. Environment Variables
+Set in Railway dashboard:
+```
+DEBUG=False
+MONGODB_CONNECTION_STRING=mongodb+srv://sachivcsv_db_user:tfLNVtw5PlMOFxI7@cluster0.sez8ihw.mongodb.net/spine_scraper
+MONGODB_DATABASE_NAME=Beautiful_Spine
+PORT=5000
+```
+
+### 3. Domain Setup
+- Railway will provide a default domain like `https://your-app.railway.app`
+- You can add custom domain in settings
+
+## Production Configuration
+
+### Key Changes Made:
+
+1. **Production Requirements**: Updated `requirements.txt` with production dependencies
+2. **Environment Variables**: Support for `DEBUG`, `MONGODB_CONNECTION_STRING`, etc.
+3. **Gunicorn WSGI**: Production-ready WSGI server configuration
+4. **Media Handling**: Production-friendly media file handling
+5. **CORS Configuration**: Production CORS settings
+6. **Logging**: Production logging configuration
+
+### Files Modified:
+
+- `unified_app/app.py` - Production-ready Flask app
+- `requirements.txt` - Updated dependencies
+- `Procfile` - Gunicorn configuration
+- `runtime.txt` - Python 3.11 specification
+- `.env` - Environment variables template
+- `mongodb_manager.py` - Environment variable support
+- `unified_app/twitter_mongo_manager.py` - Environment variable support
+
+## Deployment Checklist
+
+### Before Deployment:
+- [ ] Update MongoDB credentials if needed
+- [ ] Test locally with `python unified_app/app.py`
+- [ ] Verify all dependencies in `requirements.txt`
+- [ ] Set `DEBUG=False` in production
+- [ ] Configure CORS for your domain
+
+### After Deployment:
+- [ ] Verify application loads
+- [ ] Test API endpoints (`/api/feed`, `/api/stats`)
+- [ ] Check logs for any errors
+- [ ] Test spine article scraping functionality
+- [ ] Monitor performance and resource usage
+
+## Important Notes
+
+### Media Files
+- Media files from Twitter are **not included** in deployment
+- In production, media requests return informative messages
+- For production media support, consider:
+  - AWS S3 integration
+  - Cloudinary
+  - Railway File Storage
+  - Render Persistent Disks
+
+### Background Tasks
+- Automatic scraping is enabled but may be resource-intensive
+- Consider disabling for high-traffic deployments:
+  ```bash
+  ENABLE_AUTO_SCRAPING=False
+  ```
+
+### Performance
+- Default Gunicorn configuration: 2 workers, 120s timeout
+- Adjust based on expected traffic:
+  ```bash
+  # More workers for higher traffic
+  --workers 4
+  --max-requests 1000
+  ```
+
+## Monitoring
+
+### Health Checks
+- Main page: `https://your-app.railway.app/` or `https://your-app.onrender.com`
+- API endpoints: `/api/feed`, `/api/stats`, `/api/sources`
+- Scraping status: `/api/scraper/status`
+
+### Logs
+- **Render**: Check logs in dashboard
+- **Railway**: Use `railway logs` command or dashboard
+
+## Troubleshooting
+
+### Common Issues:
+
+1. **MongoDB Connection Failed**
+   - Verify connection string
+   - Check IP whitelist in MongoDB Atlas
+   - Ensure `MONGODB_DATABASE_NAME` is set
+
+2. **Port Not Available**
+   - Ensure app uses `$PORT` environment variable
+   - Don't hardcode port 5000 in production
+
+3. **Static Files Not Loading**
+   - Flask should serve static files automatically
+   - Check `static` folder is in correct location
+
+4. **High Memory Usage**
+   - Reduce background task frequency
+   - Limit concurrent scraping operations
+
+### Support
+- Check application logs for detailed error messages
+- Verify environment variables are set correctly
+- Test locally first to isolate issues
+
+---
+
+**Status**: ✅ Production Ready | **Last Updated**: October 2025

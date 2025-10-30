@@ -1,0 +1,49 @@
+# Production deployment files
+.env
+logs/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+*.so
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Media files (not deployed to cloud)
+twitter-scraper/*/media_tweets/
+twitter-scraper/*/text_tweets/
+*.mp4
+*.jpg
+*.jpeg
+*.png
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Database backups (use cloud storage instead)
+backups/
+*.db
+*.sqlite
+*.sqlite3
+
+# OS generated files
+Thumbs.db
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db

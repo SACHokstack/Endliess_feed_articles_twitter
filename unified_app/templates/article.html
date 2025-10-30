@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ article.title }} - Spine News Hub</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/cards.css') }}">
+</head>
+<body>
+    <!-- Top Navbar -->
+    <nav class="navbar">
+        <div class="nav-left">
+            <h1 class="logo">
+                <span class="logo-icon">🏥</span>
+                <a href="/" style="text-decoration: none; color: inherit;">Spine News Hub</a>
+            </h1>
+        </div>
+        <div class="nav-right">
+            <button id="theme-toggle" class="icon-btn" title="Toggle theme">
+                <span class="theme-icon">🌙</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Article Container -->
+    <div class="container">
+        <!-- Back Button -->
+        <div style="margin-bottom: 20px;">
+            <a href="/" class="btn btn-secondary">
+                ← Back to Feed
+            </a>
+        </div>
+
+        <!-- Article Header -->
+        <article class="article-detail">
+            <header class="article-header">
+                <div class="article-meta">
+                    <span class="article-source">{{ article.website_name }}</span>
+                    <span class="article-date">{{ article.scraped_at }}</span>
+                </div>
+                <h1 class="article-title">{{ article.title }}</h1>
+            </header>
+
+            <!-- Article Content -->
+            <div class="article-content">
+                {% if article.content %}
+                    <div class="article-text">
+                        {{ article.content|safe }}
+                    </div>
+                    <!-- Article Source Info -->
+                    <div class="article-source-info">
+                        <div class="source-badge">
+                            <span class="source-label">Source:</span>
+                            <span class="source-name">{{ article.website_name }}</span>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="article-text">
+                        <p>Content not available. Please visit the original source.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Article Metadata -->
+            {% if article.financial_mentions or article.spine_procedures %}
+            <div class="article-metadata">
+                {% if article.financial_mentions %}
+                <div class="metadata-section">
+                    <h3>Financial Mentions</h3>
+                    <div class="metadata-tags">
+                        {% for mention in article.financial_mentions %}
+                        <span class="metadata-tag financial">{{ mention }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if article.spine_procedures %}
+                <div class="metadata-section">
+                    <h3>Spine Procedures</h3>
+                    <div class="metadata-tags">
+                        {% for procedure in article.spine_procedures %}
+                        <span class="metadata-tag procedure">{{ procedure }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Original Article Link -->
+            <div class="article-footer">
+                <a href="{{ article.url }}" target="_blank" class="btn btn-primary" rel="noopener noreferrer">
+                    Read Original Article →
+                </a>
+                <div class="article-stats">
+                    <span class="stat">Content Length: {{ article.content_length or 0 }} characters</span>
+                </div>
+            </div>
+        </article>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+</body>
+</html>

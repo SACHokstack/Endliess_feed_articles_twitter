@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spine News & Social Feed</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/cards.css') }}">
+</head>
+<body>
+    <!-- Top Navbar -->
+    <nav class="navbar">
+        <div class="nav-left">
+            <h1 class="logo">
+                <span class="logo-icon">🏥</span>
+                Spine News Hub
+            </h1>
+        </div>
+        <div class="nav-right">
+            <button id="theme-toggle" class="icon-btn" title="Toggle theme">
+                <span class="theme-icon">🌙</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Left Sidebar - Scraping Controls -->
+        <aside class="sidebar sidebar-left">
+            <div class="sidebar-section">
+                <h3 class="sidebar-title">⚡ Auto-Scraper Status</h3>
+                <div class="scraper-status-card">
+                    <div class="status-info">
+                        <p class="status-label">Automatic Article Scraping</p>
+                        <p class="status-value" id="scraper-status">Active</p>
+                    </div>
+                    <div class="status-info">
+                        <p class="status-label">Interval:</p>
+                        <p class="status-value">Every 10 hours</p>
+                    </div>
+                    <div class="status-info">
+                        <p class="status-label">Next Run:</p>
+                        <p class="status-value" id="next-scrape-time">Loading...</p>
+                    </div>
+                    <div class="status-info">
+                        <p class="status-label">Sources:</p>
+                        <ul class="source-list-small">
+                            <li>Spine Market Group</li>
+                            <li>Ortho Spine News</li>
+                            <li>Becker's Spine Review</li>
+                        </ul>
+                    </div>
+                </div>
+                <p class="status-note">📌 Articles are automatically scraped and added to the feed. No manual action needed!</p>
+            </div>
+
+            <!-- Twitter scraping now enabled - Twitter integration working -->
+            <div class="sidebar-section">
+                <h3 class="sidebar-title">Scrape Twitter</h3>
+                <div class="input-group">
+                    <label>Add Twitter User:</label>
+                    <div class="input-with-btn">
+                        <input type="text" id="twitter-user-input" placeholder="@username">
+                        <button id="add-twitter-user-btn" class="btn-sm">Add</button>
+                    </div>
+                </div>
+                <div id="twitter-users-list" class="users-list">
+                </div>
+                <div class="input-group">
+                    <label>Or search keyword:</label>
+                    <input type="text" id="twitter-keyword" placeholder="spine, orthopedics, etc.">
+                </div>
+                <div class="input-group">
+                    <label>Tweets limit:</label>
+                    <input type="number" id="twitter-limit" value="50" min="1" max="200">
+                </div>
+                <button id="scrape-twitter-btn" class="btn btn-primary">
+                    <span class="btn-icon">🐦</span>
+                    Scrape Tweets
+                </button>
+                <div id="twitter-progress" class="progress-section" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                    <div class="progress-text">Scraping...</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Feed Area -->
+        <main class="main-feed">
+            <div class="feed-header">
+                <h2>Unified Feed</h2>
+                <div class="feed-controls">
+                    <button id="refresh-feed-btn" class="btn-sm">
+                        <span>🔄</span> Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Feed Container -->
+            <div id="feed-container" class="feed-container">
+                <!-- Loading state -->
+                <div id="feed-loading" class="feed-loading">
+                    <div class="spinner"></div>
+                    <p>Loading feed...</p>
+                </div>
+
+                <!-- Empty state -->
+                <div id="feed-empty" class="feed-empty" style="display: none;">
+                    <div class="empty-icon">📭</div>
+                    <h3>No Content Yet</h3>
+                    <p>Start by scraping some articles or tweets!</p>
+                </div>
+
+                <!-- Feed items will be inserted here dynamically -->
+            </div>
+
+            <!-- Load More Button -->
+            <div id="load-more-container" class="load-more-container" style="display: none;">
+                <button id="load-more-btn" class="btn btn-secondary">
+                    Load More
+                </button>
+            </div>
+        </main>
+
+        <!-- Right Sidebar - Filters -->
+        <aside class="sidebar sidebar-right">
+            <div class="sidebar-section">
+                <h3 class="sidebar-title">Filters</h3>
+
+                <div class="filter-group">
+                    <label>Content Type:</label>
+                    <select id="filter-type" class="filter-select">
+                        <option value="both">All Content</option>
+                        <option value="article">Articles Only</option>
+                        <option value="tweet">Tweets Only</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>Date Range:</label>
+                    <input type="date" id="filter-start-date" class="filter-input">
+                    <span class="filter-separator">to</span>
+                    <input type="date" id="filter-end-date" class="filter-input">
+                </div>
+
+                <div class="filter-group">
+                    <label>Search:</label>
+                    <input type="text" id="filter-search" class="filter-input" placeholder="Search content...">
+                </div>
+
+                <div class="filter-group">
+                    <label>Source:</label>
+                    <select id="filter-source" class="filter-select">
+                        <option value="">All Sources</option>
+                        <!-- Dynamic options -->
+                    </select>
+                </div>
+
+                <div class="filter-actions">
+                    <button id="apply-filters-btn" class="btn btn-primary">
+                        Apply Filters
+                    </button>
+                    <button id="clear-filters-btn" class="btn btn-secondary">
+                        Clear All
+                    </button>
+                </div>
+
+                <div id="active-filters" class="active-filters" style="display: none;">
+                    <p class="filter-label">Active Filters:</p>
+                    <div id="filter-tags" class="filter-tags">
+                        <!-- Dynamic filter tags -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h3 class="sidebar-title">Quick Stats</h3>
+                <div class="stats-list">
+                    <div class="stat-item">
+                        <span class="stat-label">Spine Sources:</span>
+                        <span class="stat-value" id="stat-spine-sources">3</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Twitter Users:</span>
+                        <span class="stat-value" id="stat-twitter-users">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Last Updated:</span>
+                        <span class="stat-value" id="stat-last-updated">-</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="notification-toast" class="notification-toast">
+        <div class="notification-content">
+            <span class="notification-icon"></span>
+            <span class="notification-message"></span>
+        </div>
+    </div>
+
+    <!-- Media Lightbox -->
+    <div id="media-lightbox" class="lightbox" style="display: none;">
+        <div class="lightbox-overlay"></div>
+        <div class="lightbox-content">
+            <button class="lightbox-close">&times;</button>
+            <img id="lightbox-image" src="" alt="Media">
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/feed.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
