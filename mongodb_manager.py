@@ -65,29 +65,10 @@ class MongoDBManager:
 
         # Connect to MongoDB
         try:
-            # Configure SSL/TLS for compatibility with various environments
-            # Including Python 3.13 SSL compatibility
-            import ssl
-
-            connection_params = {
-                'serverSelectionTimeoutMS': 30000,
-                'connectTimeoutMS': 30000,
-                'socketTimeoutMS': 30000,
-                'retryWrites': True,
-                'w': 'majority'
-            }
-
-            # Add SSL configuration for production environments
-            if not DEBUG_MODE:
-                # Production: Use more lenient SSL for compatibility
-                connection_params.update({
-                    'tls': True,
-                    'tlsAllowInvalidCertificates': True
-                })
-
+            # Simple connection - let pymongo handle SSL automatically
             self.client = MongoClient(
                 self.config['connection_string'],
-                **connection_params
+                serverSelectionTimeoutMS=30000
             )
 
             # Test connection
