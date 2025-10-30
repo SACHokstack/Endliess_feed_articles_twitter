@@ -40,9 +40,24 @@ class TwitterMongoManager:
 
         # Connect to MongoDB
         try:
+            # Configure SSL/TLS for compatibility with various environments
+            # Including Python 3.13 SSL compatibility
+            import ssl
+
+            connection_params = {
+                'serverSelectionTimeoutMS': 30000,
+                'connectTimeoutMS': 30000,
+                'socketTimeoutMS': 30000,
+                'retryWrites': True,
+                'w': 'majority',
+                'tls': True,
+                'tlsAllowInvalidCertificates': True,
+                'tlsInsecure': True
+            }
+
             self.client = MongoClient(
                 self.config['connection_string'],
-                serverSelectionTimeoutMS=5000
+                **connection_params
             )
             self.client.server_info()
             logger.info(f"Twitter MongoDB Manager connected to {self.config['connection_string']}")
