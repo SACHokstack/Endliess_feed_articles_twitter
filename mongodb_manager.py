@@ -382,6 +382,14 @@ class MongoDBManager:
         """
         with self.lock:
             article = self.articles_collection.find_one({'url': article_id}, {'_id': 0})
+            
+            # Debug logging
+            if article:
+                content_length = len(article.get('content', '')) if article.get('content') else 0
+                logger.info(f"Retrieved article from DB: {article.get('title', 'No Title')[:50]}...")
+                logger.info(f"Full content length from DB: {content_length} characters")
+                logger.info(f"Content type: {type(article.get('content'))}")
+            
             return article
 
     def get_database_stats(self) -> Dict:

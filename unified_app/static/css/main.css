@@ -623,6 +623,73 @@ body {
     margin-bottom: 1.8rem;
 }
 
+.article-text {
+    min-height: 200px;
+    line-height: 1.6;
+    font-size: 16px;
+    white-space: pre-wrap;
+    margin-bottom: 2rem;
+    padding: 1rem 0;
+}
+
+.article-text p {
+    margin-bottom: 1.5rem;
+    text-align: justify;
+}
+
+.article-text h1, .article-text h2, .article-text h3,
+.article-text h4, .article-text h5, .article-text h6 {
+    margin: 2rem 0 1rem 0;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.article-text ul, .article-text ol {
+    margin: 1rem 0 1rem 2rem;
+}
+
+.article-text li {
+    margin-bottom: 0.5rem;
+}
+
+.article-text strong {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.article-text em {
+    font-style: italic;
+}
+
+.article-text blockquote {
+    margin: 2rem 0;
+    padding: 1rem 1.5rem;
+    border-left: 4px solid var(--accent-primary);
+    background-color: var(--bg-tertiary);
+    border-radius: 0 8px 8px 0;
+}
+
+.article-text code {
+    background-color: var(--bg-tertiary);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+.article-text pre {
+    background-color: var(--bg-tertiary);
+    padding: 1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 1.5rem 0;
+}
+
+.article-text pre code {
+    background: none;
+    padding: 0;
+}
+
 .article-source-info {
     margin-top: 2rem;
     padding: 1.5rem;

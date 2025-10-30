@@ -271,6 +271,12 @@ def article_detail():
             logger.error(f"Article not found for URL: {decoded_url}")
             return render_template('404.html'), 404
 
+        # Debug logging for article content
+        content_length = len(article.get('content', '')) if article.get('content') else 0
+        logger.info(f"Retrieved article: {article.get('title', 'No Title')[:50]}...")
+        logger.info(f"Content length: {content_length} characters")
+        logger.info(f"Content preview (first 200 chars): {article.get('content', '')[:200]}...")
+
         return render_template('article.html', article=article)
 
     except Exception as e:

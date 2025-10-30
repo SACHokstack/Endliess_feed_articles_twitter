@@ -46,8 +46,8 @@
             <!-- Article Content -->
             <div class="article-content">
                 {% if article.content %}
-                    <div class="article-text">
-                        {{ article.content|safe }}
+                    <div class="article-text" style="min-height: 200px; line-height: 1.6; font-size: 16px; white-space: pre-wrap;">
+                        {{ article.content|replace('\n\n\n+', '\n\n')|replace('\n\n\n+', '\n\n')|replace('\n\n\n+', '\n\n')|trim|safe }}
                     </div>
                     <!-- Article Source Info -->
                     <div class="article-source-info">
@@ -97,8 +97,22 @@
                 </a>
                 <div class="article-stats">
                     <span class="stat">Content Length: {{ article.content_length or 0 }} characters</span>
+                    <span class="stat">Word Count: {{ (article.content or '').split()|length if article.content else 0 }} words</span>
                 </div>
             </div>
+        </article>
+
+        <!-- Debug Information (Remove in production) -->
+        <div style="margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 5px; font-family: monospace; font-size: 12px;">
+            <h4>Debug Information:</h4>
+            <p><strong>Title:</strong> {{ article.title[:100] }}...</p>
+            <p><strong>URL:</strong> {{ article.url[:80] }}...</p>
+            <p><strong>Content Length:</strong> {{ (article.content or '')|length }} characters</p>
+            <p><strong>Content Preview (first 200 chars):</strong></p>
+            <pre style="background: white; padding: 10px; border: 1px solid #ccc; max-height: 100px; overflow: auto;">{{ (article.content or '')[:200] }}...</pre>
+            <p><strong>Website:</strong> {{ article.website_name }}</p>
+            <p><strong>Scraped At:</strong> {{ article.scraped_at }}</p>
+        </div>
         </article>
     </div>
 
