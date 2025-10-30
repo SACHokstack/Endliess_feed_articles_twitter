@@ -420,16 +420,14 @@ class TwitterMongoManager:
     def get_media_file(self, gridfs_id: str) -> Optional[Dict]:
         """
         Retrieve a media file from GridFS.
-        
+
         Args:
             gridfs_id: GridFS file ID
-            
+
         Returns:
             Dict with file content and metadata, None if not found
         """
         try:
-            from bson.objectid import ObjectId
-            
             file_obj = self.gridfs.get(ObjectId(gridfs_id))
             
             return {
@@ -492,17 +490,16 @@ class TwitterMongoManager:
     def serve_media_from_gridfs(self, gridfs_id: str):
         """
         Serve media file directly from GridFS via Flask response.
-        
+
         Args:
             gridfs_id: GridFS file ID
-            
+
         Returns:
             Flask response with media content
         """
         try:
             from flask import Response
-            from bson.objectid import ObjectId
-            
+
             file_data = self.get_media_file(gridfs_id)
             if not file_data:
                 return None
