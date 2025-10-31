@@ -147,19 +147,10 @@ For complete system documentation, see:
 
 ## Testing
 
-```bash
-cd unified_app
-
-# Test MongoDB connection
-python3 test_mongodb.py
-
-# Test application
-python3 test_app.py
-
-# Test Twitter integration
-python3 test_twitter_integration.py
-```
-
+For system verification, check:
+- Application logs at `/api/stats`
+- Database connectivity in application output
+- Web interface functionality at http://localhost:5000
 ## Performance
 
 - **Response Time:** < 2 seconds average
