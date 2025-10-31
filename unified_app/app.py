@@ -122,7 +122,7 @@ def automatic_article_scraping():
 
     try:
         scraper = SpineMarketScraper()
-        sources = ['spine_market_group', 'ortho_spine_news', 'beckers_spine']
+        sources = ['spine_market_group', 'ortho_spine_news', 'beckers_spine', 'spinal_surgery_news', 'ortho_spine_news_category', 'spinal_research_org']
         limit = 20  # Scrape 20 articles per source
 
         for source_key in sources:
@@ -473,7 +473,7 @@ def get_scraper_status():
                     'enabled': True,
                     'interval': '10 hours',
                     'next_run': next_run,
-                    'sources': ['Spine Market Group', 'Ortho Spine News', "Becker's Spine Review"],
+                    'sources': ['Spine Market Group', 'Ortho Spine News', "Becker's Spine Review", 'Spinal Surgery News', 'Ortho Spine News - Spine Category', 'Spinal Research Organization'],
                     'articles_per_source': 20
                 }
             })

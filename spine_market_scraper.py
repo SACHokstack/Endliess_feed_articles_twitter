@@ -38,6 +38,21 @@ class SpineMarketScraper:
                 'name': 'Becker\'s Spine Review',
                 'base_url': 'https://www.beckersspine.com',
                 'category_url': 'https://www.beckersspine.com/',
+            },
+            'spinal_surgery_news': {
+                'name': 'Spinal Surgery News',
+                'base_url': 'https://www.spinalsurgerynews.com',
+                'category_url': 'https://www.spinalsurgerynews.com/',
+            },
+            'ortho_spine_news_category': {
+                'name': 'Ortho Spine News - Spine Category',
+                'base_url': 'https://orthospinenews.com',
+                'category_url': 'https://orthospinenews.com/category/spine/',
+            },
+            'spinal_research_org': {
+                'name': 'Spinal Research Organization',
+                'base_url': 'https://spinal-research.org',
+                'category_url': 'https://spinal-research.org/news/',
             }
         }
         
@@ -81,9 +96,16 @@ class SpineMarketScraper:
         if 'thespinemarketgroup.com' in url:
             return 'spine_market_group'
         elif 'orthospinenews.com' in url:
-            return 'ortho_spine_news'
+            if '/category/spine/' in url:
+                return 'ortho_spine_news_category'
+            else:
+                return 'ortho_spine_news'
         elif 'beckersspine.com' in url:
             return 'beckers_spine'
+        elif 'spinalsurgerynews.com' in url:
+            return 'spinal_surgery_news'
+        elif 'spinal-research.org' in url:
+            return 'spinal_research_org'
         return None
 
     def scrape_article_listing_page(self, source_key: str, limit: int = 10) -> List[str]:
